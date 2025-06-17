@@ -36,7 +36,7 @@ Link: https://split-expenses-app-9bw7.onrender.com/
 ### 1. Clone the Repo
 
 ```bash
-git clone https://github.com/your-username/split-expense-app.git
+git clone https://github.com/NilayNahar27/split-expenses-app
 cd split-expense-app
 ```
 
@@ -102,7 +102,7 @@ Om: -85
 
 ## Postman Collection
 
-Link: [https://gist.github.com/your-gist-id](https://gist.github.com/your-gist-id)
+Link: https://gist.github.com/NilayNahar27/d0235049a4feddf13c91f04b86e19b94
 
 * All API endpoints tested
 * Test data: Dinner, Groceries, Petrol, Movie Tickets
