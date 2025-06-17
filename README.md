@@ -119,12 +119,6 @@ Link: [https://gist.github.com/your-gist-id](https://gist.github.com/your-gist-i
 
 ---
 
-## Demo Video (Optional)
-
-Coming soon or replace with your YouTube link
-
----
-
 ## License
 
 MIT License © 2024 Nilay Nahar
