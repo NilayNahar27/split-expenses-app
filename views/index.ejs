@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Split Expense App</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -10,21 +10,54 @@
   <h2>Split Expense App</h2>
 
   <!-- Add Expense Form -->
-  <form action="/add-expense" method="POST">
+  <form action="/add-expense" method="POST" id="expense-form">
     <input name="description" placeholder="Description" required />
     <input name="amount" type="number" placeholder="Amount" required />
-    <input name="paid_by" placeholder="Paid By" required />
+    <input name="paid_by" placeholder="Paid By" list="people-list" required />
 
-    <label>Participants:</label><br />
-    <% people.forEach(person => { %>
-      <label>
-        <input type="checkbox" name="participants" value="<%= person %>" />
-        <%= person %>
-      </label><br />
-    <% }) %>
+    <!-- Dynamic participant input section -->
+    <div id="participants-wrapper">
+      <input name="participants" placeholder="Participant 1" list="people-list" required />
+    </div>
+    <button type="button" onclick="addParticipantField()">+ Add Participant</button>
 
     <button type="submit">Add Expense</button>
+
+    <!-- Optional: datalist for auto-suggestions -->
+    <datalist id="people-list">
+      <% people.forEach(p => { %>
+        <option value="<%= p %>"></option>
+      <% }) %>
+    </datalist>
   </form>
+
+  <script>
+    function addParticipantField() {
+      const wrapper = document.getElementById('participants-wrapper');
+      const input = document.createElement('input');
+      input.name = 'participants';
+      input.placeholder = 'New Participant';
+      input.setAttribute('list', 'people-list');
+      wrapper.appendChild(input);
+    }
+
+    // Combine participant fields into one input on submit
+    document.getElementById('expense-form').addEventListener('submit', function(e) {
+      const fields = document.querySelectorAll('input[name="participants"]');
+      const names = Array.from(fields).map(f => f.value.trim()).filter(Boolean);
+      const combined = names.join(',');
+
+      // Remove old participant fields
+      fields.forEach(f => f.remove());
+
+      // Append one hidden field
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = 'participants';
+      hidden.value = combined;
+      this.appendChild(hidden);
+    });
+  </script>
 
   <!-- Expense Table -->
   <table>
