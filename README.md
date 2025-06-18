@@ -2,7 +2,7 @@ Split Expense App
 A simple full-stack application to manage shared expenses, calculate balances, and suggest settlements among participants, using Indian Rupees (₹).
 
 Live Demo
-Link: https://split-expense-app.onrender.com/ 
+Link: https://split-expenses-app-9bw7.onrender.com/
 
 Features
 
@@ -137,3 +137,5 @@ Add success notifications for add/delete actions
 Implement transaction history
 
 
+License
+MIT License
