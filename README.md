@@ -27,7 +27,7 @@ Hosting: Render (free tier)
 
 Setup Instructions (Local Development)
 1. Clone the Repo
-git clone https://github.com/yourusername/split-expense-app *(Replace with your actual repository URL)*
+git clone https://github.com/NilayNahar27/split-expenses-app
 cd split-expense-app
 
 2. Install Dependencies
