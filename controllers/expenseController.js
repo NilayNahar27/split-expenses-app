@@ -4,32 +4,47 @@ const { calculateBalances, getSettlements } = require('../utils/settlementUtils'
 // Add a new expense
 exports.addExpense = async (req, res) => {
   try {
-    let { amount, description, paid_by, participants, split_equally, custom_shares_names, custom_shares_amounts } = req.body;
+    let {
+      amount,
+      description,
+      paid_by,
+      participants,
+      split_equally,
+      custom_shares_names,
+      custom_shares_amounts
+    } = req.body;
 
-    // Normalize participants
+    // Normalize participants to array
     if (!Array.isArray(participants)) {
       participants = participants ? [participants] : [];
     }
     participants = participants.map(p => p.trim()).filter(Boolean);
 
-    // Basic validation
+    // Basic validations
     if (!description || !paid_by || participants.length === 0 || isNaN(amount) || amount <= 0) {
-      return res.status(400).send("Invalid input");
+      return res.status(400).send("Invalid input: All fields are required and amount must be positive.");
     }
 
     const totalAmount = parseFloat(amount);
     const paidBy = paid_by.trim();
+    const shares = {};
 
-    let shares = {};
-
-    // Determine splitting method
-    if (split_equally || split_equally === 'on') {
-      const equalShare = +(totalAmount / participants.length).toFixed(2);
+    // Split equally if flag is set or checked
+    if (split_equally === 'on' || split_equally === true) {
+      const equalShare = parseFloat((totalAmount / participants.length).toFixed(2));
       participants.forEach(p => {
         shares[p] = equalShare;
       });
+
+      // Fix for rounding mismatch
+      const totalShared = Object.values(shares).reduce((sum, val) => sum + val, 0);
+      const correction = +(totalAmount - totalShared).toFixed(2);
+      if (Math.abs(correction) > 0.01) {
+        shares[participants[0]] += correction; // Adjust first participant
+      }
+
     } else {
-      // Custom share logic
+      // Custom shares mode
       if (!Array.isArray(custom_shares_names)) {
         custom_shares_names = custom_shares_names ? [custom_shares_names] : [];
       }
@@ -37,21 +52,21 @@ exports.addExpense = async (req, res) => {
         custom_shares_amounts = custom_shares_amounts ? [custom_shares_amounts] : [];
       }
 
-      custom_shares_names.forEach((name, i) => {
-        const trimmedName = name.trim();
-        const amt = parseFloat(custom_shares_amounts[i]);
-        if (trimmedName && !isNaN(amt)) {
-          shares[trimmedName] = amt;
+      custom_shares_names.forEach((name, idx) => {
+        const trimmed = name.trim();
+        const shareAmt = parseFloat(custom_shares_amounts[idx]);
+        if (trimmed && !isNaN(shareAmt) && shareAmt >= 0) {
+          shares[trimmed] = shareAmt;
         }
       });
 
       const totalShared = Object.values(shares).reduce((sum, val) => sum + val, 0);
       if (Math.abs(totalShared - totalAmount) > 0.01) {
-        return res.status(400).send("Custom shares must sum to total amount");
+        return res.status(400).send("Custom shares must sum to the total amount");
       }
     }
 
-    // Create new expense
+    // Save to DB
     const expense = new Expense({
       description: description.trim(),
       amount: totalAmount,
