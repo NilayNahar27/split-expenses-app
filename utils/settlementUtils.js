@@ -1,3 +1,4 @@
+// Calculates net balances per participant based only on involved users
 function calculateBalances(expenses) {
   const balances = {};
   const activeUsers = new Set();
@@ -10,16 +11,16 @@ function calculateBalances(expenses) {
     activeUsers.add(paid_by);
     participants.forEach(p => activeUsers.add(p));
 
-    // Update payer
+    // Add full amount to payer's balance
     balances[paid_by] = (balances[paid_by] || 0) + amount;
 
-    // Update participants
+    // Subtract share from each participant
     for (const user of participants) {
       balances[user] = (balances[user] || 0) - share;
     }
   }
 
-  // Filter out users who were not involved
+  // Filter out users not involved in any transaction
   const filtered = {};
   for (const user of activeUsers) {
     filtered[user] = balances[user];
@@ -28,19 +29,23 @@ function calculateBalances(expenses) {
   return filtered;
 }
 
+// Generates optimal settlement transactions between debtors and creditors
 function getSettlements(balances) {
   const settlements = [];
   const creditors = [];
   const debtors = [];
 
+  // Separate people into creditors and debtors
   for (const [person, amount] of Object.entries(balances)) {
     if (amount > 0.01) creditors.push({ person, amount });
     else if (amount < -0.01) debtors.push({ person, amount });
   }
 
+  // Sort: creditors descending, debtors ascending
   creditors.sort((a, b) => b.amount - a.amount);
   debtors.sort((a, b) => a.amount - b.amount);
 
+  // Greedy matching to minimize transactions
   while (creditors.length && debtors.length) {
     const creditor = creditors[0];
     const debtor = debtors[0];

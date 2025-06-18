@@ -12,7 +12,23 @@ router.get('/expenses', async (req, res) => {
 // POST new expense
 router.post('/expenses', async (req, res) => {
   try {
-    const expense = await Expense.create(req.body);
+    const { description, amount, paid_by, participants } = req.body;
+
+    const cleanedParticipants = participants
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+
+    if (!description || !paid_by || cleanedParticipants.length === 0 || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid expense data.' });
+    }
+
+    const expense = await Expense.create({
+      description: description.trim(),
+      amount: parseFloat(amount),
+      paid_by: paid_by.trim(),
+      participants: cleanedParticipants
+    });
+
     res.status(201).json({ success: true, data: expense });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
