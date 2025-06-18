@@ -28,7 +28,41 @@ function calculateBalances(expenses) {
   return filtered;
 }
 
+function getSettlements(balances) {
+  const settlements = [];
+  const creditors = [];
+  const debtors = [];
+
+  for (const [person, amount] of Object.entries(balances)) {
+    if (amount > 0.01) creditors.push({ person, amount });
+    else if (amount < -0.01) debtors.push({ person, amount });
+  }
+
+  creditors.sort((a, b) => b.amount - a.amount);
+  debtors.sort((a, b) => a.amount - b.amount);
+
+  while (creditors.length && debtors.length) {
+    const creditor = creditors[0];
+    const debtor = debtors[0];
+    const amount = Math.min(creditor.amount, -debtor.amount);
+
+    settlements.push({
+      from: debtor.person,
+      to: creditor.person,
+      amount: Math.round(amount * 100) / 100
+    });
+
+    creditor.amount -= amount;
+    debtor.amount += amount;
+
+    if (creditor.amount < 0.01) creditors.shift();
+    if (debtor.amount > -0.01) debtors.shift();
+  }
+
+  return settlements;
+}
+
 module.exports = {
   calculateBalances,
-  // getSettlements
+  getSettlements
 };
