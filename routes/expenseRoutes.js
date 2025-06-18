@@ -14,26 +14,19 @@ router.get('/expenses', async (req, res) => {
 });
 
 // POST new expense (supports equal or custom shares)
-router.post('/expenses', async (req, res) => {
+router.post('/add-expense', async (req, res) => {
   try {
-    let {
-      description,
-      amount,
-      paid_by,
-      participants,
-      split_equally,
-      custom_shares_names,
-      custom_shares_amounts
-    } = req.body;
+    const { description, amount, paid_by, split_equally } = req.body;
+    let { participants, custom_shares_names, custom_shares_amounts } = req.body;
 
     // Normalize participants
     if (!Array.isArray(participants)) {
       participants = participants ? [participants] : [];
     }
-    participants = participants.map(p => p.trim()).filter(Boolean);
+    const cleanedParticipants = participants.map(p => p.trim()).filter(Boolean);
 
-    if (!description || !paid_by || participants.length === 0 || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid input: missing or invalid fields.' });
+    if (!description || !paid_by || cleanedParticipants.length === 0 || isNaN(amount) || amount <= 0) {
+      return res.status(400).send('Invalid expense data.');
     }
 
     const totalAmount = parseFloat(amount);
@@ -41,20 +34,19 @@ router.post('/expenses', async (req, res) => {
     let shares = {};
 
     if (split_equally === 'on' || split_equally === true) {
-      // Equal share logic
-      const equalShare = +(totalAmount / participants.length).toFixed(2);
+      // ⚠️ Exclude the payer from being charged their own share
+      const participantsWithoutPayer = cleanedParticipants.filter(p => p !== paidBy);
 
-      participants.forEach(p => {
+      if (participantsWithoutPayer.length === 0) {
+        return res.status(400).send("No one to split with.");
+      }
+
+      const equalShare = +(totalAmount / participantsWithoutPayer.length).toFixed(2);
+      participantsWithoutPayer.forEach(p => {
         shares[p] = equalShare;
       });
-
-      // Adjust last participant to handle floating-point remainder
-      const sumSoFar = Object.values(shares).reduce((acc, val) => acc + val, 0);
-      const diff = +(totalAmount - sumSoFar).toFixed(2);
-      const lastPerson = participants[participants.length - 1];
-      shares[lastPerson] = +(shares[lastPerson] + diff).toFixed(2);
     } else {
-      // Custom share logic
+      // Normalize custom shares input
       if (!Array.isArray(custom_shares_names)) {
         custom_shares_names = custom_shares_names ? [custom_shares_names] : [];
       }
@@ -63,37 +55,32 @@ router.post('/expenses', async (req, res) => {
       }
 
       custom_shares_names.forEach((name, i) => {
-        const trimmed = name.trim();
-        const amt = parseFloat(custom_shares_amounts[i]);
-
-        if (trimmed && !isNaN(amt)) {
-          shares[trimmed] = +(amt.toFixed(2));
+        const user = name.trim();
+        const value = parseFloat(custom_shares_amounts[i]);
+        if (user && !isNaN(value)) {
+          shares[user] = value;
         }
       });
 
-      const sharedTotal = Object.values(shares).reduce((sum, v) => sum + v, 0);
-
-      if (Math.abs(sharedTotal - totalAmount) > 0.01) {
-        return res.status(400).json({
-          success: false,
-          message: `Custom shares must sum to total amount. Expected ${totalAmount}, but got ${sharedTotal.toFixed(2)}`
-        });
+      const sharedSum = Object.values(shares).reduce((sum, v) => sum + v, 0);
+      if (Math.abs(sharedSum - totalAmount) > 0.01) {
+        return res.status(400).send('Custom shares must sum to total amount.');
       }
     }
 
-    const expense = await Expense.create({
+    const expenseData = {
       description: description.trim(),
       amount: totalAmount,
       paid_by: paidBy,
-      participants,
+      participants: cleanedParticipants,
       shares
-    });
+    };
 
-    res.status(201).json({ success: true, data: expense });
-
+    await Expense.create(expenseData);
+    res.redirect('/');
   } catch (err) {
-    console.error("Error adding expense:", err);
-    res.status(500).json({ success: false, message: 'Failed to create expense.' });
+    console.error(err);
+    res.status(500).send('Failed to add expense.');
   }
 });
 
