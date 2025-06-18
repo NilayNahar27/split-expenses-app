@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Split Expense App</title>
   <link rel="stylesheet" href="/style.css" />
+  <style>
+    .custom-shares { display: none; margin-top: 10px; }
+    .custom-row { margin-bottom: 5px; }
+  </style>
 </head>
 <body>
   <h2>Split Expense App</h2>
@@ -15,20 +19,39 @@
     <input name="amount" type="number" placeholder="Amount" step="0.01" required />
     <input name="paid_by" placeholder="Paid By" list="people-list" required />
 
-    <!-- Participant inputs rendered by backend -->
+    <!-- Participants -->
     <div id="participants-section">
       <% for (let i = 0; i < 3; i++) { %>
         <input name="participants" placeholder="Participant <%= i + 1 %>" list="people-list" />
       <% } %>
     </div>
 
+    <!-- Split Mode Toggle -->
     <label>
-      <input type="checkbox" name="split_equally" checked disabled />
-      Split Equally (Enabled)
+      <input type="checkbox" name="split_equally" id="split-equally" checked />
+      Split Equally
     </label>
 
+    <!-- Custom Shares Section -->
+    <div class="custom-shares" id="custom-shares">
+      <h4>Custom Shares</h4>
+      <div id="custom-share-list">
+        <div class="custom-row">
+          <input name="custom_shares_names" placeholder="Name" list="people-list" />
+          <input name="custom_shares_amounts" type="number" placeholder="Amount" step="0.01" />
+        </div>
+        <div class="custom-row">
+          <input name="custom_shares_names" placeholder="Name" list="people-list" />
+          <input name="custom_shares_amounts" type="number" placeholder="Amount" step="0.01" />
+        </div>
+      </div>
+      <button type="button" onclick="addCustomRow()">+ Add Row</button>
+    </div>
+
+    <br/>
     <button type="submit">Add Expense</button>
 
+    <!-- Datalist for autocomplete -->
     <datalist id="people-list">
       <% people.forEach(p => { %>
         <option value="<%= p %>"></option>
@@ -95,5 +118,26 @@
       <% } %>
     </ul>
   </div>
+
+  <!-- Script to handle dynamic UI -->
+  <script>
+    const splitCheckbox = document.getElementById('split-equally');
+    const customSharesSection = document.getElementById('custom-shares');
+
+    splitCheckbox.addEventListener('change', () => {
+      customSharesSection.style.display = splitCheckbox.checked ? 'none' : 'block';
+    });
+
+    function addCustomRow() {
+      const container = document.getElementById('custom-share-list');
+      const row = document.createElement('div');
+      row.className = 'custom-row';
+      row.innerHTML = `
+        <input name="custom_shares_names" placeholder="Name" list="people-list" />
+        <input name="custom_shares_amounts" type="number" placeholder="Amount" step="0.01" />
+      `;
+      container.appendChild(row);
+    }
+  </script>
 </body>
 </html>
