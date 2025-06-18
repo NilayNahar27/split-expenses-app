@@ -1,30 +1,37 @@
-// Calculates net balances per participant based only on involved users
+// Calculates net balances per participant (supports equal and custom shares)
 function calculateBalances(expenses) {
   const balances = {};
   const activeUsers = new Set();
 
   for (const expense of expenses) {
-    const { amount, paid_by, participants } = expense;
+    const { amount, paid_by, participants, shares } = expense;
 
-    // Ignore invalid entries
-    if (!participants || participants.length === 0) continue;
+    // Skip if no participants or amount is invalid
+    if (!participants || participants.length === 0 || isNaN(amount)) continue;
 
-    const share = amount / participants.length;
-
-    // Track involved users
     activeUsers.add(paid_by);
     participants.forEach(p => activeUsers.add(p));
 
-    // Add full amount to payer's balance
+    // Add full amount to payer
     balances[paid_by] = (balances[paid_by] || 0) + amount;
 
-    // Subtract share from each participant
-    for (const user of participants) {
-      balances[user] = (balances[user] || 0) - share;
+    // Handle custom or equal shares
+    if (shares && typeof shares === 'object' && Object.keys(shares).length > 0) {
+      for (const [person, shareAmount] of Object.entries(shares)) {
+        const share = parseFloat(shareAmount);
+        if (!isNaN(share)) {
+          balances[person] = (balances[person] || 0) - share;
+        }
+      }
+    } else {
+      const equalShare = amount / participants.length;
+      for (const user of participants) {
+        balances[user] = (balances[user] || 0) - equalShare;
+      }
     }
   }
 
-  // Return only those involved
+  // Return only involved users, rounded to 2 decimal places
   const filtered = {};
   for (const user of activeUsers) {
     filtered[user] = Math.round((balances[user] + Number.EPSILON) * 100) / 100;
@@ -48,7 +55,7 @@ function getSettlements(balances) {
   creditors.sort((a, b) => b.amount - a.amount);
   debtors.sort((a, b) => a.amount - b.amount);
 
-  // Greedy matching algorithm
+  // Greedy matching
   while (creditors.length && debtors.length) {
     const creditor = creditors[0];
     const debtor = debtors[0];

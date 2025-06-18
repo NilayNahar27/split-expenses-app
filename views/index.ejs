@@ -10,20 +10,29 @@
   <h2>Split Expense App</h2>
 
   <!-- Add Expense Form -->
-  <form action="/add-expense" method="POST" id="expense-form">
+  <form action="/add-expense" method="POST">
     <input name="description" placeholder="Description" required />
-    <input name="amount" type="number" placeholder="Amount" required />
+    <input name="amount" type="number" placeholder="Amount" step="0.01" required />
     <input name="paid_by" placeholder="Paid By" list="people-list" required />
 
-    <!-- Dynamic participant input section -->
-    <div id="participants-wrapper">
-      <input name="participants" placeholder="Participant 1" list="people-list" required />
-    </div>
-    <button type="button" onclick="addParticipantField()">+ Add Participant</button>
+    <!-- Participant fields -->
+    <% for (let i = 0; i < 3; i++) { %>
+      <input name="participants" placeholder="Participant <%= i + 1 %>" list="people-list" />
+    <% } %>
+
+    <!-- Checkbox for split equally -->
+    <label>
+      <input type="checkbox" name="split_equally" checked /> Split Equally
+    </label>
+
+    <!-- Custom shares inputs -->
+    <% for (let i = 0; i < 3; i++) { %>
+      <input name="custom_shares_names" placeholder="Name for custom share <%= i + 1 %>" list="people-list" />
+      <input name="custom_shares_amounts" type="number" step="0.01" placeholder="Amount" />
+    <% } %>
 
     <button type="submit">Add Expense</button>
 
-    <!-- Optional: datalist for auto-suggestions -->
     <datalist id="people-list">
       <% people.forEach(p => { %>
         <option value="<%= p %>"></option>
@@ -31,33 +40,7 @@
     </datalist>
   </form>
 
-  <script>
-    function addParticipantField() {
-      const wrapper = document.getElementById('participants-wrapper');
-      const input = document.createElement('input');
-      input.name = 'participants';
-      input.placeholder = 'New Participant';
-      input.setAttribute('list', 'people-list');
-      wrapper.appendChild(input);
-    }
-
-    // Combine participant fields into one input on submit
-    document.getElementById('expense-form').addEventListener('submit', function(e) {
-      const fields = document.querySelectorAll('input[name="participants"]');
-      const names = Array.from(fields).map(f => f.value.trim()).filter(Boolean);
-      const combined = names.join(',');
-
-      // Remove old participant fields
-      fields.forEach(f => f.remove());
-
-      // Append one hidden field
-      const hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'participants';
-      hidden.value = combined;
-      this.appendChild(hidden);
-    });
-  </script>
+  <hr>
 
   <!-- Expense Table -->
   <table>

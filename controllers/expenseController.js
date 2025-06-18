@@ -4,36 +4,67 @@ const { calculateBalances, getSettlements } = require('../utils/settlementUtils'
 // Add a new expense
 exports.addExpense = async (req, res) => {
   try {
-    let { amount, description, paid_by, participants } = req.body;
+    let { amount, description, paid_by, participants, split_equally, custom_shares_names, custom_shares_amounts } = req.body;
 
-    // Normalize participants (checkboxes return string if only one selected)
+    // Normalize participants
     if (!Array.isArray(participants)) {
-      participants = [participants];
+      participants = participants ? [participants] : [];
     }
+    participants = participants.map(p => p.trim()).filter(Boolean);
 
-    // Basic validation
-    if (
-      !description ||
-      !paid_by ||
-      !Array.isArray(participants) ||
-      participants.length === 0 ||
-      isNaN(amount) ||
-      amount <= 0
-    ) {
+    // Validation
+    if (!description || !paid_by || participants.length === 0 || isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: "Invalid input" });
     }
 
+    const totalAmount = parseFloat(amount);
+    const paidBy = paid_by.trim();
+
+    let shares = {};
+
+    if (split_equally) {
+      // Equal split
+      const equalShare = +(totalAmount / participants.length).toFixed(2);
+      participants.forEach(p => {
+        shares[p] = equalShare;
+      });
+    } else {
+      // Custom split
+      if (!Array.isArray(custom_shares_names)) {
+        custom_shares_names = custom_shares_names ? [custom_shares_names] : [];
+      }
+      if (!Array.isArray(custom_shares_amounts)) {
+        custom_shares_amounts = custom_shares_amounts ? [custom_shares_amounts] : [];
+      }
+
+      custom_shares_names.forEach((name, i) => {
+        const trimmedName = name.trim();
+        const amt = parseFloat(custom_shares_amounts[i]);
+        if (trimmedName && !isNaN(amt)) {
+          shares[trimmedName] = amt;
+        }
+      });
+
+      const totalShared = Object.values(shares).reduce((sum, val) => sum + val, 0);
+      if (Math.abs(totalShared - totalAmount) > 0.01) {
+        return res.status(400).json({ message: "Custom shares must sum to total amount" });
+      }
+    }
+
+    // Create and save expense
     const expense = new Expense({
-      amount: parseFloat(amount),
+      amount: totalAmount,
       description: description.trim(),
-      paid_by: paid_by.trim(),
-      participants: participants.map(p => p.trim())
+      paid_by: paidBy,
+      participants,
+      shares
     });
 
     await expense.save();
-    res.status(201).json({ success: true, data: expense, message: "Expense added" });
+    res.redirect('/'); // Redirect after form submission
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).send("Server error while adding expense");
   }
 };
 
@@ -58,7 +89,7 @@ exports.updateExpense = async (req, res) => {
 exports.deleteExpense = async (req, res) => {
   const deleted = await Expense.findByIdAndDelete(req.params.id);
   if (!deleted) return res.status(404).json({ message: "Expense not found" });
-  res.json({ message: "Deleted successfully" });
+  res.redirect('/');
 };
 
 // Get unique people involved
