@@ -1,48 +1,32 @@
 // Calculates net balances per participant (supports equal and custom shares)
 function calculateBalances(expenses) {
   const balances = {};
-  const activeUsers = new Set();
 
   for (const expense of expenses) {
-    const { amount, paid_by, participants, shares } = expense;
+    const { amount, paid_by, shares } = expense;
 
-    // Skip if no participants or amount is invalid
-    if (!participants || participants.length === 0 || isNaN(amount)) continue;
-
-    activeUsers.add(paid_by);
-    participants.forEach(p => activeUsers.add(p));
-
-    // Add full amount to payer
+    // 1. Add the total amount to the person who paid
     balances[paid_by] = (balances[paid_by] || 0) + amount;
 
-    // Handle custom or equal shares
-    if (shares && typeof shares === 'object' && Object.keys(shares).length > 0) {
-      for (const [person, shareAmount] of Object.entries(shares)) {
-        const share = parseFloat(shareAmount);
-        if (!isNaN(share)) {
-          balances[person] = (balances[person] || 0) - share;
-        }
-      }
-    } else {
-      const equalShare = amount / participants.length;
-      for (const user of participants) {
-        balances[user] = (balances[user] || 0) - equalShare;
+    // 2. Subtract each participant's share from their balance
+    if (shares && typeof shares === 'object') {
+      for (const [participant, shareAmount] of Object.entries(shares)) {
+        balances[participant] = (balances[participant] || 0) - shareAmount;
       }
     }
   }
 
-  // Return only involved users, rounded to 2 decimal places
-  const filtered = {};
-  for (const user of activeUsers) {
-    filtered[user] = Math.round((balances[user] + Number.EPSILON) * 100) / 100;
+  // Round to 2 decimal places
+  for (let person in balances) {
+    balances[person] = Math.round((balances[person] + Number.EPSILON) * 100) / 100;
   }
 
-  return filtered;
+  return balances;
 }
+
 
 // Generates optimal settlement transactions between debtors and creditors
 function getSettlements(balances) {
-  const settlements = [];
   const creditors = [];
   const debtors = [];
 
@@ -51,11 +35,12 @@ function getSettlements(balances) {
     else if (amount < -0.01) debtors.push({ person, amount });
   }
 
-  // Sort creditors descending and debtors ascending
+  // Sort to optimize settlements
   creditors.sort((a, b) => b.amount - a.amount);
   debtors.sort((a, b) => a.amount - b.amount);
 
-  // Greedy matching
+  const settlements = [];
+
   while (creditors.length && debtors.length) {
     const creditor = creditors[0];
     const debtor = debtors[0];
@@ -76,6 +61,7 @@ function getSettlements(balances) {
 
   return settlements;
 }
+
 
 module.exports = {
   calculateBalances,

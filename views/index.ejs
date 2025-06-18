@@ -15,21 +15,17 @@
     <input name="amount" type="number" placeholder="Amount" step="0.01" required />
     <input name="paid_by" placeholder="Paid By" list="people-list" required />
 
-    <!-- Participant fields -->
-    <% for (let i = 0; i < 3; i++) { %>
-      <input name="participants" placeholder="Participant <%= i + 1 %>" list="people-list" />
-    <% } %>
+    <!-- Participant inputs rendered by backend -->
+    <div id="participants-section">
+      <% for (let i = 0; i < 3; i++) { %>
+        <input name="participants" placeholder="Participant <%= i + 1 %>" list="people-list" />
+      <% } %>
+    </div>
 
-    <!-- Checkbox for split equally -->
     <label>
-      <input type="checkbox" name="split_equally" checked /> Split Equally
+      <input type="checkbox" name="split_equally" checked disabled />
+      Split Equally (Enabled)
     </label>
-
-    <!-- Custom shares inputs -->
-    <% for (let i = 0; i < 3; i++) { %>
-      <input name="custom_shares_names" placeholder="Name for custom share <%= i + 1 %>" list="people-list" />
-      <input name="custom_shares_amounts" type="number" step="0.01" placeholder="Amount" />
-    <% } %>
 
     <button type="submit">Add Expense</button>
 
@@ -70,6 +66,8 @@
     </tbody>
   </table>
 
+  <hr>
+
   <!-- Summary Section -->
   <div class="summary">
     <h3>People</h3>
@@ -88,9 +86,13 @@
 
     <h3>Settlements</h3>
     <ul>
-      <% settlements.forEach(s => { %>
-        <li><%= s.from %> pays <%= s.to %> ₹<%= s.amount %></li>
-      <% }) %>
+      <% if (settlements.length === 0) { %>
+        <li>All settled up!</li>
+      <% } else { %>
+        <% settlements.forEach(s => { %>
+          <li><%= s.from %> pays <%= s.to %> ₹<%= s.amount %></li>
+        <% }) %>
+      <% } %>
     </ul>
   </div>
 </body>
