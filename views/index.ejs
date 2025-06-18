@@ -37,8 +37,7 @@
           <td><%= exp.paid_by %></td>
           <td><%= exp.participants.join(', ') %></td>
           <td>
-            <form action="/api/expenses/<%= exp._id %>" method="POST" onsubmit="return confirm('Delete this expense?');">
-              <input type="hidden" name="_method" value="DELETE" />
+            <form action="/api/expenses/<%= exp._id %>?_method=DELETE" method="POST" onsubmit="return confirm('Delete this expense?');">
               <button type="submit">Delete</button>
             </form>
           </td>
