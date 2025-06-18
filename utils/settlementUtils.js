@@ -27,3 +27,8 @@ function calculateBalances(expenses) {
 
   return filtered;
 }
+
+module.exports = {
+  calculateBalances,
+  getSettlements
+};
