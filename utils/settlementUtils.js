@@ -30,5 +30,5 @@ function calculateBalances(expenses) {
 
 module.exports = {
   calculateBalances,
-  getSettlements
+  // getSettlements
 };
