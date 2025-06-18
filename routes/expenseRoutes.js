@@ -1,20 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
-const { calculateBalances, getSettlements } = require('../utils/settlementUtils');
 
-// GET all expenses
-router.get('/expenses', async (req, res) => {
-  try {
-    const expenses = await Expense.find().sort({ createdAt: -1 });
-    res.json(expenses);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch expenses.' });
-  }
-});
-
-// POST new expense (supports equal or custom shares)
-router.post('/expenses', async (req, res) => {
+// POST new expense
+router.post('/add-expense', async (req, res) => {
   try {
     let {
       description,
@@ -26,143 +15,54 @@ router.post('/expenses', async (req, res) => {
       custom_shares_amounts
     } = req.body;
 
-    // Normalize participants
     if (!Array.isArray(participants)) {
       participants = participants ? [participants] : [];
     }
     participants = participants.map(p => p.trim()).filter(Boolean);
 
     if (!description || !paid_by || participants.length === 0 || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid input: missing or invalid fields.' });
+      return res.redirect('/');
     }
 
     const totalAmount = parseFloat(amount);
     const paidBy = paid_by.trim();
     let shares = {};
 
-    if (split_equally === 'on' || split_equally === true) {
-      // Equal share logic
+    if (split_equally === 'on') {
       const equalShare = +(totalAmount / participants.length).toFixed(2);
+      participants.forEach(p => { shares[p] = equalShare; });
 
-      participants.forEach(p => {
-        shares[p] = equalShare;
-      });
-
-      // Adjust last participant to handle floating-point remainder
       const sumSoFar = Object.values(shares).reduce((acc, val) => acc + val, 0);
       const diff = +(totalAmount - sumSoFar).toFixed(2);
-      const lastPerson = participants[participants.length - 1];
-      shares[lastPerson] = +(shares[lastPerson] + diff).toFixed(2);
+      shares[participants[participants.length - 1]] += diff;
     } else {
-      // Custom share logic
-      if (!Array.isArray(custom_shares_names)) {
-        custom_shares_names = custom_shares_names ? [custom_shares_names] : [];
-      }
-      if (!Array.isArray(custom_shares_amounts)) {
-        custom_shares_amounts = custom_shares_amounts ? [custom_shares_amounts] : [];
-      }
+      if (!Array.isArray(custom_shares_names)) custom_shares_names = [custom_shares_names];
+      if (!Array.isArray(custom_shares_amounts)) custom_shares_amounts = [custom_shares_amounts];
 
       custom_shares_names.forEach((name, i) => {
         const trimmed = name.trim();
         const amt = parseFloat(custom_shares_amounts[i]);
-
         if (trimmed && !isNaN(amt)) {
           shares[trimmed] = +(amt.toFixed(2));
         }
       });
 
       const sharedTotal = Object.values(shares).reduce((sum, v) => sum + v, 0);
-
-      if (Math.abs(sharedTotal - totalAmount) > 0.01) {
-        return res.status(400).json({
-          success: false,
-          message: `Custom shares must sum to total amount. Expected ${totalAmount}, but got ${sharedTotal.toFixed(2)}`
-        });
-      }
+      if (Math.abs(sharedTotal - totalAmount) > 0.01) return res.redirect('/');
     }
 
-    const expense = await Expense.create({
-      description: description.trim(),
-      amount: totalAmount,
-      paid_by: paidBy,
-      participants,
-      shares
-    });
-
-    res.status(201).json({ success: true, data: expense });
-
+    await Expense.create({ description: description.trim(), amount: totalAmount, paid_by: paidBy, participants, shares });
+    res.redirect('/');
   } catch (err) {
-    console.error("Error adding expense:", err);
-    res.status(500).json({ success: false, message: 'Failed to create expense.' });
+    console.error("Add expense failed:", err);
+    res.redirect('/');
   }
 });
 
-// DELETE an expense by ID
+// DELETE expense
 router.delete('/expenses/:id', async (req, res) => {
-  try {
-    const deleted = await Expense.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ success: false, message: 'Expense not found.' });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to delete expense.' });
-  }
-});
-
-// GET all unique people
-router.get('/people', async (req, res) => {
-  try {
-    const expenses = await Expense.find();
-    const people = [...new Set(expenses.flatMap(e => [e.paid_by, ...e.participants]))];
-    res.json(people);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to get people.' });
-  }
-});
-
-// GET balances summary
-router.get('/balances', async (req, res) => {
-  try {
-    const expenses = await Expense.find();
-    const balances = calculateBalances(expenses);
-    res.json(balances);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to get balances.' });
-  }
-});
-
-// GET settlement suggestions
-router.get('/settlements', async (req, res) => {
-  try {
-    const expenses = await Expense.find();
-    const balances = calculateBalances(expenses);
-    const settlements = getSettlements(balances);
-    res.json(settlements);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to get settlements.' });
-  }
-});
-
-// GET homepage and render EJS
-router.get('/', async (req, res) => {
-  try {
-    const expenses = await Expense.find().sort({ createdAt: -1 });
-
-    const people = [...new Set(expenses.flatMap(e => [e.paid_by, ...e.participants]))];
-    const balances = calculateBalances(expenses);
-    const settlements = getSettlements(balances);
-
-    console.log("DEBUG settlements:", settlements);
-
-    res.render('index', {
-      expenses,
-      people,
-      balances,
-      settlements
-    });
-  } catch (err) {
-    console.error("Error rendering index:", err);
-    res.status(500).send("Failed to load dashboard.");
-  }
+  await Expense.findByIdAndDelete(req.params.id);
+  res.redirect('/');
 });
 
 module.exports = router;

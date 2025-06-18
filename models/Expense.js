@@ -1,11 +1,14 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
 
-const expenseSchema = new Schema({
+const expenseSchema = new mongoose.Schema({
   description: String,
   amount: Number,
   paid_by: String,
-  participants: [String]
+  participants: [String],
+  shares: {
+    type: Map,
+    of: Number
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Expense', expenseSchema);

@@ -1,73 +1,51 @@
-// Calculate net balances per participant (supports equal and custom shares)
 function calculateBalances(expenses) {
   const balances = {};
 
-  for (const expense of expenses) {
-    const { amount, paid_by, shares } = expense;
+  expenses.forEach(exp => {
+    const paidBy = exp.paid_by;
+    const shares = exp.shares || {};
 
-    // Credit the person who paid
-    balances[paid_by] = (balances[paid_by] || 0) + amount;
+    // Paid amount gets credited
+    balances[paidBy] = (balances[paidBy] || 0) + exp.amount;
 
-    // Debit each participant based on their share
-    if (shares && typeof shares === 'object') {
-      for (const [participant, shareAmount] of Object.entries(shares)) {
-        balances[participant] = (balances[participant] || 0) - shareAmount;
-      }
+    // Each participant owes their share (debited)
+    for (const [person, amount] of Object.entries(shares)) {
+      balances[person] = (balances[person] || 0) - amount;
     }
-  }
-
-  // Normalize floating point errors (e.g., 33.333... or -66.666...)
-  for (const person in balances) {
-    balances[person] = Math.round((balances[person] + Number.EPSILON) * 100) / 100;
-  }
+  });
 
   return balances;
 }
 
-// Generate minimal settlements between debtors and creditors
 function getSettlements(balances) {
   const creditors = [];
   const debtors = [];
 
-  // Separate creditors and debtors
   for (const [person, balance] of Object.entries(balances)) {
-    if (balance > 0.01) {
-      creditors.push({ person, amount: balance });
-    } else if (balance < -0.01) {
-      debtors.push({ person, amount: balance });
-    }
+    const rounded = +balance.toFixed(2);
+    if (rounded > 0) creditors.push({ person, amount: rounded });
+    else if (rounded < 0) debtors.push({ person, amount: -rounded });
   }
 
-  // Sort for optimal matching
-  creditors.sort((a, b) => b.amount - a.amount); // Descending
-  debtors.sort((a, b) => a.amount - b.amount);   // Ascending (more negative first)
+  creditors.sort((a, b) => b.amount - a.amount);
+  debtors.sort((a, b) => b.amount - a.amount);
 
   const settlements = [];
 
-  while (creditors.length && debtors.length) {
-    const creditor = creditors[0];
-    const debtor = debtors[0];
-    const amountToSettle = Math.min(creditor.amount, -debtor.amount);
+  for (let d of debtors) {
+    for (let c of creditors) {
+      if (d.amount === 0) break;
+      const min = Math.min(d.amount, c.amount);
 
-    settlements.push({
-      from: debtor.person,
-      to: creditor.person,
-      amount: Math.round((amountToSettle + Number.EPSILON) * 100) / 100
-    });
-
-    // Update balances
-    creditor.amount -= amountToSettle;
-    debtor.amount += amountToSettle;
-
-    // Remove fully settled entries
-    if (creditor.amount <= 0.01) creditors.shift();
-    if (debtor.amount >= -0.01) debtors.shift();
+      if (min > 0) {
+        settlements.push({ from: d.person, to: c.person, amount: +min.toFixed(2) });
+        d.amount -= min;
+        c.amount -= min;
+      }
+    }
   }
 
   return settlements;
 }
 
-module.exports = {
-  calculateBalances,
-  getSettlements
-};
+module.exports = { calculateBalances, getSettlements };
