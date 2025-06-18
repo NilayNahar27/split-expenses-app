@@ -13,7 +13,7 @@
     <!-- Add Expense Form -->
     <form id="expenseForm">
       <input type="text" id="description" placeholder="Description" required>
-      <input type="number" id="amount" placeholder="Amount" required step="0.01">
+      <input type="number" id="amount" placeholder="Amount (₹)" required step="0.01">
       <input type="text" id="paidBy" placeholder="Paid by" required>
       <input type="text" id="participants" placeholder="Participants (comma-separated)" required>
       <button type="submit">Add Expense</button>
@@ -24,12 +24,12 @@
     <ul id="expenseList">
       <% expenses.forEach(expense => { %>
         <li>
-          <%= expense.description %>: $<%= expense.amount.toFixed(2) %> 
+          <%= expense.description %>: ₹<%= expense.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %> 
           (Paid by <%= expense.paidBy %>)
           <ul>
             <% expense.participants.forEach(p => { %>
               <li>
-                <%= p.user %> owes: $<%= typeof p.share === 'number' && !isNaN(p.share) ? p.share.toFixed(2) : 'N/A' %>
+                <%= p.user %> owes: ₹<%= typeof p.share === 'number' && !isNaN(p.share) ? p.share.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A' %>
               </li>
             <% }) %>
           </ul>
@@ -41,7 +41,9 @@
     <h2>Settlements</h2>
     <ul id="balanceList">
       <% balances.forEach(balance => { %>
-        <li><%= balance.from %> owes <%= balance.to %> $<%= balance.amount.toFixed(2) %></li>
+        <li>
+          <%= balance.from %> owes <%= balance.to %> ₹<%= balance.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>
+        </li>
       <% }) %>
     </ul>
   </div>

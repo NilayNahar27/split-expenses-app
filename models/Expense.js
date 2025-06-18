@@ -39,19 +39,16 @@ const expenseSchema = new mongoose.Schema({
 
 // Pre-save hook to validate and sanitize data
 expenseSchema.pre('save', function(next) {
-  // Ensure participants array is not empty
   if (!this.participants || this.participants.length === 0) {
     return next(new Error('At least one participant is required'));
   }
 
-  // Validate that each participant has a valid share
   this.participants.forEach(participant => {
     if (typeof participant.share !== 'number' || isNaN(participant.share) || participant.share < 0) {
       return next(new Error(`Invalid share for participant ${participant.user}`));
     }
   });
 
-  // Ensure total shares match the amount
   const totalShares = this.participants.reduce((sum, p) => sum + p.share, 0);
   if (Math.abs(totalShares - this.amount) > 0.01) {
     return next(new Error('Total participant shares must equal the expense amount'));

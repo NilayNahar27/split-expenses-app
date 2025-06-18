@@ -27,11 +27,11 @@ exports.addExpense = async (req, res) => {
 
     const expense = new Expense({
       description: description.trim(),
-      amount: parseFloat(amount.toFixed(2)), // Ensure amount is rounded to 2 decimal places
+      amount: parseFloat(amount.toFixed(2)),
       paidBy: paidBy.trim(),
       participants: participants.map(p => ({
         user: p.user.trim(),
-        share: parseFloat(share.toFixed(2)) // Round share to 2 decimal places
+        share: parseFloat(share.toFixed(2))
       }))
     });
 
