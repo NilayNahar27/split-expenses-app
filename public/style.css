@@ -37,6 +37,17 @@ button:hover {
   background-color: #45a049;
 }
 
+.delete-btn {
+  background-color: #e74c3c;
+  padding: 5px 10px;
+  margin-left: 10px;
+  font-size: 0.9em;
+}
+
+.delete-btn:hover {
+  background-color: #c0392b;
+}
+
 ul {
   list-style: none;
   padding: 0;
@@ -47,4 +58,7 @@ li {
   padding: 10px;
   background-color: #f9f9f9;
   border-radius: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }

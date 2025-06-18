@@ -66,3 +66,27 @@ exports.getBalances = async (req, res) => {
     res.status(500).json({ error: 'Failed to calculate balances: ' + error.message });
   }
 };
+
+exports.deleteExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid expense ID' });
+    }
+
+    const expense = await Expense.findByIdAndDelete(id);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
+
+    res.status(200).json({ message: 'Expense deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting expense:', {
+      error: error.message,
+      expenseId: req.params.id
+    });
+    res.status(500).json({ error: 'Failed to delete expense: ' + error.message });
+  }
+};
