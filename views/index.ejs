@@ -24,11 +24,13 @@
     <ul id="expenseList">
       <% expenses.forEach(expense => { %>
         <li>
-          <%= expense.description %>: $<%= expense.amount %> 
+          <%= expense.description %>: $<%= expense.amount.toFixed(2) %> 
           (Paid by <%= expense.paidBy %>)
           <ul>
             <% expense.participants.forEach(p => { %>
-              <li><%= p.user %> owes $<%= p.share.toFixed(2) %></li>
+              <li>
+                <%= p.user %> owes: $<%= typeof p.share === 'number' && !isNaN(p.share) ? p.share.toFixed(2) : 'N/A' %>
+              </li>
             <% }) %>
           </ul>
         </li>
@@ -48,13 +50,32 @@
     document.getElementById('expenseForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const description = document.getElementById('description').value;
+      const description = document.getElementById('description').value.trim();
       const amount = parseFloat(document.getElementById('amount').value);
-      const paidBy = document.getElementById('paidBy').value;
+      const paidBy = document.getElementById('paidBy').value.trim();
       const participants = document.getElementById('participants').value
         .split(',')
         .map(p => p.trim())
+        .filter(user => user.length > 0)
         .map(user => ({ user }));
+
+      // Client-side validation
+      if (!description) {
+        alert('Description is required');
+        return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+        alert('Amount must be a positive number');
+        return;
+      }
+      if (!paidBy) {
+        alert('Paid by field is required');
+        return;
+      }
+      if (participants.length === 0) {
+        alert('At least one participant is required');
+        return;
+      }
 
       try {
         const response = await fetch('/api/expenses', {
@@ -66,11 +87,12 @@
         if (response.ok) {
           window.location.reload();
         } else {
-          alert('Error adding expense');
+          const errorData = await response.json();
+          alert(`Error adding expense: ${errorData.error || 'Unknown error'}`);
         }
       } catch (error) {
-        console.error('Error:', error);
-        alert('Error adding expense');
+        console.error('Error adding expense:', error);
+        alert('Failed to add expense. Please try again.');
       }
     });
   </script>
