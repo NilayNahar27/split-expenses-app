@@ -5,6 +5,10 @@ function calculateBalances(expenses) {
 
   for (const expense of expenses) {
     const { amount, paid_by, participants } = expense;
+
+    // Ignore invalid entries
+    if (!participants || participants.length === 0) continue;
+
     const share = amount / participants.length;
 
     // Track involved users
@@ -20,10 +24,10 @@ function calculateBalances(expenses) {
     }
   }
 
-  // Filter out users not involved in any transaction
+  // Return only those involved
   const filtered = {};
   for (const user of activeUsers) {
-    filtered[user] = balances[user];
+    filtered[user] = Math.round((balances[user] + Number.EPSILON) * 100) / 100;
   }
 
   return filtered;
@@ -35,17 +39,16 @@ function getSettlements(balances) {
   const creditors = [];
   const debtors = [];
 
-  // Separate people into creditors and debtors
   for (const [person, amount] of Object.entries(balances)) {
     if (amount > 0.01) creditors.push({ person, amount });
     else if (amount < -0.01) debtors.push({ person, amount });
   }
 
-  // Sort: creditors descending, debtors ascending
+  // Sort creditors descending and debtors ascending
   creditors.sort((a, b) => b.amount - a.amount);
   debtors.sort((a, b) => a.amount - b.amount);
 
-  // Greedy matching to minimize transactions
+  // Greedy matching algorithm
   while (creditors.length && debtors.length) {
     const creditor = creditors[0];
     const debtor = debtors[0];

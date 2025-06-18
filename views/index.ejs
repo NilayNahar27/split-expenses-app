@@ -14,7 +14,15 @@
     <input name="description" placeholder="Description" required />
     <input name="amount" type="number" placeholder="Amount" required />
     <input name="paid_by" placeholder="Paid By" required />
-    <input name="participants" placeholder="Participants (comma-separated)" required />
+
+    <label>Participants:</label><br />
+    <% people.forEach(person => { %>
+      <label>
+        <input type="checkbox" name="participants" value="<%= person %>" />
+        <%= person %>
+      </label><br />
+    <% }) %>
+
     <button type="submit">Add Expense</button>
   </form>
 

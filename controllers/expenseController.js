@@ -6,12 +6,20 @@ exports.addExpense = async (req, res) => {
   try {
     let { amount, description, paid_by, participants } = req.body;
 
-    // Ensure participants is an array, even if coming from comma-separated string
-    if (typeof participants === 'string') {
-      participants = participants.split(',').map(p => p.trim()).filter(p => p.length > 0);
+    // Normalize participants (checkboxes return string if only one selected)
+    if (!Array.isArray(participants)) {
+      participants = [participants];
     }
 
-    if (!description || !paid_by || !participants?.length || isNaN(amount) || amount <= 0) {
+    // Basic validation
+    if (
+      !description ||
+      !paid_by ||
+      !Array.isArray(participants) ||
+      participants.length === 0 ||
+      isNaN(amount) ||
+      amount <= 0
+    ) {
       return res.status(400).json({ message: "Invalid input" });
     }
 
@@ -19,7 +27,7 @@ exports.addExpense = async (req, res) => {
       amount: parseFloat(amount),
       description: description.trim(),
       paid_by: paid_by.trim(),
-      participants
+      participants: participants.map(p => p.trim())
     });
 
     await expense.save();
@@ -53,21 +61,21 @@ exports.deleteExpense = async (req, res) => {
   res.json({ message: "Deleted successfully" });
 };
 
-// Get unique list of people involved
+// Get unique people involved
 exports.getPeople = async (req, res) => {
   const expenses = await Expense.find();
   const people = [...new Set(expenses.flatMap(e => [e.paid_by, ...e.participants]))];
   res.json(people);
 };
 
-// Get net balances per person
+// Get balances
 exports.getBalances = async (req, res) => {
   const expenses = await Expense.find();
   const balances = calculateBalances(expenses);
   res.json(balances);
 };
 
-// Get optimized settlement summary
+// Get settlements
 exports.getSettlements = async (req, res) => {
   const expenses = await Expense.find();
   const balances = calculateBalances(expenses);
