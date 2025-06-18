@@ -9,6 +9,7 @@
 <body>
   <h2>Split Expense App</h2>
 
+  <!-- Add Expense Form -->
   <form action="/add-expense" method="POST">
     <input name="description" placeholder="Description" required />
     <input name="amount" type="number" placeholder="Amount" required />
@@ -17,10 +18,15 @@
     <button type="submit">Add Expense</button>
   </form>
 
+  <!-- Expense Table -->
   <table>
     <thead>
       <tr>
-        <th>Description</th><th>Amount</th><th>Paid By</th><th>Participants</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Paid By</th>
+        <th>Participants</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody>
@@ -30,15 +36,24 @@
           <td>₹<%= exp.amount %></td>
           <td><%= exp.paid_by %></td>
           <td><%= exp.participants.join(', ') %></td>
+          <td>
+            <form action="/api/expenses/<%= exp._id %>" method="POST" onsubmit="return confirm('Delete this expense?');">
+              <input type="hidden" name="_method" value="DELETE" />
+              <button type="submit">Delete</button>
+            </form>
+          </td>
         </tr>
       <% }) %>
     </tbody>
   </table>
 
+  <!-- Summary Section -->
   <div class="summary">
     <h3>People</h3>
     <ul>
-      <% people.forEach(p => { %><li><%= p %></li><% }) %>
+      <% people.forEach(p => { %>
+        <li><%= p %></li>
+      <% }) %>
     </ul>
 
     <h3>Balances</h3>
