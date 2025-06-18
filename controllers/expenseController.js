@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Expense = require('../models/Expense');
 const { calculateBalances } = require('../utils/settlementUtils');
 
